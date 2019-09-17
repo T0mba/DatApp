@@ -1,0 +1,10 @@
+{
+    "sqltools.connections": [
+        {
+            "database": ".\\DatingApp.API\\DatingApp.db",
+            "dialect": "SQLite",
+            "name": "DatingAppDb"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
+}
