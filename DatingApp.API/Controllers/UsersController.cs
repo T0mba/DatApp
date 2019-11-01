@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DatingApp.API.Controllers {
-    [ServiceFilter(typeof(LogUserActivity))]
+    [ServiceFilter (typeof (LogUserActivity))]
     [Authorize]
     [Route ("api/[controller]")]
     [ApiController]
@@ -24,10 +24,24 @@ namespace DatingApp.API.Controllers {
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUsers () {
-            var users = await _repo.GetUsers ();
+        public async Task<IActionResult> GetUsers ([FromQuery]UserParams userParams) 
+        {
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            var usersToReturn = _mapper.Map<IEnumerable<UserForListDto>>(users);
+            var userFromRepo = await _repo.GetUser(currentUserId);
+
+            userParams.UserId = currentUserId;
+
+            if (string.IsNullOrEmpty(userParams.Gender))
+            {
+                userParams.Gender = userFromRepo.Gender == "male" ? "female" : "male";
+            }
+
+            var users = await _repo.GetUsers (userParams);
+
+            var usersToReturn = _mapper.Map<IEnumerable<UserForListDto>> (users);
+
+            Response.AddPagination (users.CurrentPage, users.PageSize, users.TotalCount, users.TotalPages);
 
             return Ok (usersToReturn);
         }
@@ -36,24 +50,24 @@ namespace DatingApp.API.Controllers {
         public async Task<IActionResult> GetUser (int id) {
             var user = await _repo.GetUser (id);
 
-            var userToReturn = _mapper.Map<UserForDetailDto>(user);
+            var userToReturn = _mapper.Map<UserForDetailDto> (user);
 
             return Ok (userToReturn);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(int id, UserForUpdateDto userForUpdate) {
-            if (id != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))
-                return Unauthorized();
-            
-            var userFromRepo = await _repo.GetUser(id);
+        [HttpPut ("{id}")]
+        public async Task<IActionResult> UpdateUser (int id, UserForUpdateDto userForUpdate) {
+            if (id != int.Parse (User.FindFirst (ClaimTypes.NameIdentifier).Value))
+                return Unauthorized ();
 
-            _mapper.Map(userForUpdate, userFromRepo);
+            var userFromRepo = await _repo.GetUser (id);
 
-            if (await _repo.SaveAll())
-                return NoContent();
+            _mapper.Map (userForUpdate, userFromRepo);
 
-            throw new Exception($"Updating user {id} failed on save");
+            if (await _repo.SaveAll ())
+                return NoContent ();
+
+            throw new Exception ($"Updating user {id} failed on save");
         }
     }
 }
