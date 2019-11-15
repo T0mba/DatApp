@@ -29,9 +29,19 @@ namespace DatingApp.API {
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices (IServiceCollection services) {
+        public void ConfigureDevelopmentServices (IServiceCollection services) {
             services.AddDbContext<DataContext> (x => x.UseSqlite (Configuration.GetConnectionString ("DefaultConnection")));
+
+            ConfigureServices(services);
+        }
+
+        public void ConfigureProductionServices (IServiceCollection services) {
+            services.AddDbContext<DataContext> (x => x.UseMySql (Configuration.GetConnectionString ("DefaultConnection")));
+
+            ConfigureServices(services);
+        }
+
+        public void ConfigureServices (IServiceCollection services) {
             services.AddMvc ().SetCompatibilityVersion (CompatibilityVersion.Version_2_2)
                 .AddJsonOptions (opt => {
                     opt.SerializerSettings.ReferenceLoopHandling =
@@ -51,7 +61,7 @@ namespace DatingApp.API {
                     ValidateAudience = false
                     };
                 });
-            services.AddScoped<LogUserActivity>();
+            services.AddScoped<LogUserActivity> ();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -77,7 +87,14 @@ namespace DatingApp.API {
             // app.UseHttpsRedirection();
             app.UseCors (x => x.AllowAnyOrigin ().AllowAnyMethod ().AllowAnyHeader ());
             app.UseAuthentication ();
-            app.UseMvc ();
+            app.UseDefaultFiles ();
+            app.UseStaticFiles ();
+            app.UseMvc (routes => {
+                routes.MapSpaFallbackRoute (
+                    name: "spa-fallback",
+                    defaults : new { controller = "Fallback", action = "Index" }
+                );
+            });
         }
     }
 }
